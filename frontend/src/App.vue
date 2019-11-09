@@ -11,18 +11,18 @@
 					<div class="col-md">
 						<h4 class="titulo-secao">
 							Prefixos
-							<span class="badge badge-primary">{{prefixes.length}}</span>
+							<span class="badge badge-primary">{{items.prefix.length}}</span>
 						</h4>
 						<div class="card">
 							<div class="card-body">
 								<ul class="list-group">
-									<li class="list-group-item" v-for="prefix in prefixes" :key="prefix">
+									<li class="list-group-item" v-for="prefix in items.prefix" :key="prefix.id">
 										<div class="row">
 											<div class="col-md">
-												{{prefix}}
+												{{prefix.description}}
 											</div>
 											<div class="col-md text-right">
-												<button class="btn btn-primary" @click="deletePrefix(prefix)">
+												<button class="btn btn-primary" @click="deleteItem(prefix)">
 													<span class="fa fa-trash"></span>
 												</button>												
 											</div>											
@@ -30,9 +30,9 @@
 									</li>
 								</ul>
 								<div class="mt-2 input-group">
-									<input type="text" class="form-control" @keyup.enter="addPrefix(prefix)" v-model="prefix" />
+									<input type="text" class="form-control" @keyup.enter="addItem('prefix', prefix)" v-model="prefix" />
 									<div class="input-group-append">
-										<button class="btn btn-primary" @click="addPrefix(prefix)">
+										<button class="btn btn-primary" @click="addItem('prefix', prefix)">
 											<span class="fa fa-plus"></span>
 										</button>
 									</div>
@@ -44,18 +44,18 @@
 					<div class="col-md">
 						<h4 class="titulo-secao">
 							Sufixos
-							<span class="badge badge-primary">{{sufixes.length}}</span>
+							<span class="badge badge-primary">{{items.sufix.length}}</span>
 						</h4>
 						<div class="card">
 							<div class="card-body">
 								<ul class="list-group">
-									<li class="list-group-item" v-for="sufix in sufixes" :key="sufix">
+									<li class="list-group-item" v-for="sufix in items.sufix" :key="sufix.id">
 										<div class="row">
 											<div class="col-md">
-												{{sufix}}
+												{{sufix.description}}
 											</div>
 											<div class="col-md text-right">
-												<button class="btn btn-primary" @click="deleteSufix(sufix)">
+												<button class="btn btn-primary" @click="deleteItem(sufix)">
 													<span class="fa fa-trash"></span>
 												</button>												
 											</div>											
@@ -63,9 +63,9 @@
 									</li>
 								</ul>
 								<div class="mt-2 input-group">
-									<input type="text" class="form-control" @keyup.enter="addSufix(sufix)" v-model="sufix" />
+									<input type="text" class="form-control" @keyup.enter="addItem('sufix',sufix)" v-model="sufix" />
 									<div class="input-group-append">
-										<button class="btn btn-primary" @click="addSufix(sufix)">
+										<button class="btn btn-primary" @click="addItem('sufix',sufix)">
 											<span class="fa fa-plus"></span>
 										</button>
 									</div>
@@ -104,6 +104,7 @@
 </template>
 
 <script>
+import DomainService from './services/DomainService'
 import axios from "axios";
 export default {
 	name: "app",
@@ -111,58 +112,57 @@ export default {
 		return {
 			prefix: "",
 			sufix: "",
-			prefixes: [],
-			sufixes: [],
+			items: {
+				prefix: [],
+				sufix: []
+			},
 			domains: []
 		};
 	},
 	methods: {
-		addPrefix(prefix) {
-			this.prefixes.push(prefix);
-			this.prefix = "";
-			this.generate();
+		listItems(type) {
+			return DomainService.listItems(type)
+				.then(response => {
+					this.items[type] = response.data.items
+				})			
+		},		
+		addItem(type, description) {
+			DomainService.addItem({type, description})
+				.then(response => {
+					this.items[type].push(response.data.newItem);
+					
+					if (type == "prefix") this.prefix = "";
+					else this.sufix = "";
+
+					this.generate();
+			});
 		},
-		addSufix(sufix) {
-			this.sufixes.push(sufix);
-			this.sufix = "";
-			this.generate();
-		},
-		deletePrefix(prefix) {
-			this.prefixes.splice(this.prefixes.indexOf(prefix), 1);
-			this.generate();
-		},
-		deleteSufix(sufix) {
-			this.sufixes.splice(this.sufixes.indexOf(sufix), 1);
-			this.generate();
+		deleteItem(item) {
+			DomainService.removeItem(item)
+				.then(response => {
+					const deleted = response.data.deleted;
+					if (deleted) {
+						const deletedItem = this.items[item.type].find(i => i.id === item.id);
+						this.items[item.type].splice(this.items[item.type].indexOf(deletedItem), 1);
+						this.generate();
+					}	
+				});
 		},
 		generate() {
 			this.domains = [];
-			for (const prefix of this.prefixes) {
-				for(const sufix of this.sufixes) {
-					this.domains.push(prefix + sufix);
+
+			for (const prefix of this.items.prefix) {
+				for(const sufix of this.items.sufix) {
+					this.domains.push(prefix.description + sufix.description);
 				}
 			}
 		}
 	},
 	created() {
-		axios.post("http://localhost:4000", {
-			query: `
-				{
-					prefixes: items (type: "prefix") {
-						id,
-						type,
-						description
-					},
-					sufixes: items (type: "sufix") {
-						description
-					}
-				}
-			`
-		}).then(response => {
-			const query = response.data;
-			this.prefixes = query.data.prefixes.map(prefix => prefix.description);
-			this.sufixes = query.data.sufixes.map(sufix => sufix.description);
-		});
+		Promise.all([
+			this.listItems("prefix"),
+			this.listItems("sufix")
+		]).then(() => this.generate());
 	}
 };
 </script>

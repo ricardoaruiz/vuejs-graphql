@@ -1,117 +1,66 @@
 <template>
 	<section>
+
+		<!-- Header -->
 		<div class="slogan">
 			<h1 class="titulo">Gerador de domínios</h1>
-			<br />
 			<h6 class="text-secondary">Gerador de nome de domínios</h6>
 		</div>
-		<div class="app">
-			<div class="container">
-				<div class="row">
-					<div class="col-md">
-						<h4 class="titulo-secao">
-							Prefixos
-							<span class="badge badge-primary">{{items.prefix.length}}</span>
-						</h4>
-						<div class="card">
-							<div class="card-body">
-								<ul class="list-group">
-									<li class="list-group-item" v-for="prefix in items.prefix" :key="prefix.id">
-										<div class="row">
-											<div class="col-md">
-												{{prefix.description}}
-											</div>
-											<div class="col-md text-right">
-												<button class="btn btn-primary" @click="deleteItem(prefix)">
-													<span class="fa fa-trash"></span>
-												</button>												
-											</div>											
-										</div>
-									</li>
-								</ul>
-								<div class="mt-2 input-group">
-									<input type="text" class="form-control" @keyup.enter="addItem('prefix', prefix)" v-model="prefix" />
-									<div class="input-group-append">
-										<button class="btn btn-primary" @click="addItem('prefix', prefix)">
-											<span class="fa fa-plus"></span>
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
 
-					<div class="col-md">
-						<h4 class="titulo-secao">
-							Sufixos
-							<span class="badge badge-primary">{{items.sufix.length}}</span>
-						</h4>
-						<div class="card">
-							<div class="card-body">
-								<ul class="list-group">
-									<li class="list-group-item" v-for="sufix in items.sufix" :key="sufix.id">
-										<div class="row">
-											<div class="col-md">
-												{{sufix.description}}
-											</div>
-											<div class="col-md text-right">
-												<button class="btn btn-primary" @click="deleteItem(sufix)">
-													<span class="fa fa-trash"></span>
-												</button>												
-											</div>											
-										</div>
-									</li>
-								</ul>
-								<div class="mt-2 input-group">
-									<input type="text" class="form-control" @keyup.enter="addItem('sufix',sufix)" v-model="sufix" />
-									<div class="input-group-append">
-										<button class="btn btn-primary" @click="addItem('sufix',sufix)">
-											<span class="fa fa-plus"></span>
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+		<!-- Content -->
+		<div class="app container">
+
+			<div class="row">
+
+				<!-- Prefixos -->
+				<div class="col-md">
+					<ItemList 
+							title="Prefixos" 
+							:items="items.prefix" 
+							@onAddItem="addPrefix"
+							@onDeleteItem="deleteItem"
+					/>
+				</div>					
+
+				<!-- Sufixos -->
+				<div class="col-md">
+					<ItemList 
+							title="Sufixos" 
+							:items="items.sufix" 
+							@onAddItem="addSufix"
+							@onDeleteItem="deleteItem"
+					/>
+				</div>
+				
+			</div>
+
+			<div class="row">
+
+				<!-- Domínios -->
+				<div class="col-md">
+					<ItemList 
+							title="Domínios" 
+							:items="domains"
+					/>
 				</div>
 
-				<div class="row">
-					<div class="col-md">
-						<h4 class="titulo-secao">
-							Domínios
-							<span class="badge badge-primary">{{domains.length}}</span>
-						</h4>
-						<div class="card">
-							<div class="card-body">
-								<ul class="list-group">
-									<li class="list-group-item" v-for="domain in domains" :key="domain">{{domain}}</li>
-								</ul>
-								<div class="mt-3 input-group">
-									<input type="text" class="form-control" />
-									<div class="input-group-append">
-										<button class="btn btn-primary">
-											<span class="fa fa-plus"></span>
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
 			</div>
 		</div>
+
 	</section>
 </template>
 
 <script>
+import ItemList from './components/ItemList';
 import DomainService from './services/DomainService'
-import axios from "axios";
+
 export default {
 	name: "app",
+	components: {
+		ItemList
+	},
 	data() {
 		return {
-			prefix: "",
-			sufix: "",
 			items: {
 				prefix: [],
 				sufix: []
@@ -120,12 +69,18 @@ export default {
 		};
 	},
 	methods: {
+		addPrefix(prefix) {
+			this.addItem('prefix', prefix);
+		},
+		addSufix(sufix) {
+			this.addItem('sufix', sufix);
+		},		
 		listItems(type) {
 			return DomainService.listItems(type)
 				.then(response => {
 					this.items[type] = response.data.items
 				})			
-		},		
+		},	
 		addItem(type, description) {
 			DomainService.addItem({type, description})
 				.then(response => {
@@ -151,9 +106,14 @@ export default {
 		generate() {
 			this.domains = [];
 
+			let id = 0;
 			for (const prefix of this.items.prefix) {
+				id++;
 				for(const sufix of this.items.sufix) {
-					this.domains.push(prefix.description + sufix.description);
+					this.domains.push({
+						id,
+						description: prefix.description + sufix.description
+					});
 				}
 			}
 		}

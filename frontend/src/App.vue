@@ -38,7 +38,7 @@
 
 				<!-- Domínios -->
 				<div class="col-md">
-					<ItemList 
+					<DomainList 
 							title="Domínios" 
 							:items="domains"
 					/>
@@ -52,12 +52,13 @@
 
 <script>
 import ItemList from './components/ItemList';
+import DomainList from './components/DomainList';
 import DomainService from './services/DomainService'
 
 export default {
 	name: "app",
 	components: {
-		ItemList
+		ItemList, DomainList
 	},
 	data() {
 		return {
@@ -80,7 +81,11 @@ export default {
 				.then(response => {
 					this.items[type] = response.data.items
 				})			
-		},	
+		},
+		listDomains() {
+			return DomainService.listDomains()
+				.then(response => this.domains = response.data.domains)
+		},
 		addItem(type, description) {
 			DomainService.addItem({type, description})
 				.then(response => {
@@ -89,7 +94,7 @@ export default {
 					if (type == "prefix") this.prefix = "";
 					else this.sufix = "";
 
-					this.generate();
+					this.listDomains();
 			});
 		},
 		deleteItem(item) {
@@ -99,7 +104,8 @@ export default {
 					if (deleted) {
 						const deletedItem = this.items[item.type].find(i => i.id === item.id);
 						this.items[item.type].splice(this.items[item.type].indexOf(deletedItem), 1);
-						this.generate();
+						
+						this.listDomains();
 					}	
 				});
 		},
@@ -121,8 +127,9 @@ export default {
 	created() {
 		Promise.all([
 			this.listItems("prefix"),
-			this.listItems("sufix")
-		]).then(() => this.generate());
+			this.listItems("sufix"),
+			this.listDomains()
+		]).catch(error => console.log(error));
 	}
 };
 </script>

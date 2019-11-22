@@ -20,6 +20,21 @@ export default class DomainService {
         .then(response => response.data);
     }
 
+    static listDomains() {
+        return http.post('', {
+            query: `
+                query {
+                    domains: domains {
+                        id 
+                        description 
+                        available
+                    }
+                }
+            `
+        })
+        .then(response => response.data);
+    }
+
     static addItem(item) {
         return http.post('', {
             query: `
